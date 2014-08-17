@@ -75,6 +75,11 @@ preferred_encodings = ["UTF-8", "CP1252", "ISO-8859-1"]
 
 name_format = "<%s> ".decode('UTF-8') # "◀%s▶ "
 emote_format = "* %s ".decode('UTF-8') # "✱ %s "
+join_format = "--> %s joined"
+part_format = "<-- %s left"
+kick_format = '<-- %s has kicked %s'
+quit_format = "<-- %s quit"
+nickchange_format = '-- %s changed name to %s'
 
 muted_list_filename = nick + '.%s.muted'
 
@@ -358,6 +363,66 @@ class MirrorBot(SingleServerIRCBot):
         msg = msg.rstrip("\n")
         print cut_title(usemap[target].FriendlyName), msg
         usemap[target].SendMessage(msg)
+
+    def on_join(self, connection, event):
+        args = event.arguments()
+        source = event.source().split('!')[0]
+        target = event.target().lower()
+        if source in mutedl[target]:
+            return
+        msg = join_format % source
+        print cut_title(usemap[target].FriendlyName), msg
+        usemap[target].SendMessage(msg)
+
+    def on_part(self, connection, event):
+        args = event.arguments()
+        source = event.source().split('!')[0]
+        target = event.target().lower()
+        if source in mutedl[target]:
+            return
+        msg = part_format % source
+        if event.arguments():
+            msg += ' (%s)' % event.arguments()[0]
+        print cut_title(usemap[target].FriendlyName), msg
+        usemap[target].SendMessage(msg)
+
+    def on_kick(self, connection, event):
+        target = event.arguments()[0]
+        source = event.source().split('!')[0]
+        channel = event.target()
+        if source in mutedl[channel]:
+            return
+        msg = kick_format % (source, target)
+        msg += ' (%s)' % event.arguments()[1]
+        print cut_title(usemap[channel].FriendlyName), msg
+        usemap[channel].SendMessage(msg)
+
+    def on_quit(self, connection, event):
+        args = event.arguments()
+        source = event.source().split('!')[0]
+        targets = [target for (target, channel) in self.channels.items()
+                   if channel.has_user(source)]
+        msg = quit_format % source
+        if event.arguments():
+            msg += ' (%s)' % event.arguments()[0]
+        for target in targets:
+            if source in mutedl[target]:
+                continue
+            print cut_title(usemap[target].FriendlyName), msg
+            usemap[target].SendMessage(msg)
+
+    def on_nick(self, connection, event):
+        args = event.arguments()
+        source = event.source().split('!')[0]
+        dest = event.target()
+        targets = [target for (target, channel) in self.channels.items()
+                   if channel.has_user(source)]
+        if source in mutedl[target]:
+            return
+        msg = nickchange_format % (source, dest)
+        for target in targets:
+            print cut_title(usemap[target].FriendlyName), msg
+            usemap[target].SendMessage(msg)
 
     def handle_ctcp(self, connection, event):
         """Handle CTCP events for emoting"""
