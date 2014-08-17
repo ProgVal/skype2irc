@@ -73,9 +73,8 @@ delay_btw_seqs = 0.15
 
 preferred_encodings = ["UTF-8", "CP1252", "ISO-8859-1"]
 
-name_start = "<".decode('UTF-8') # "◀"
-name_end = ">".decode('UTF-8') # "▶"
-emote_char = "*".decode('UTF-8') # "✱"
+name_format = "<%s> ".decode('UTF-8') # "◀%s▶ "
+emote_format = "* %s ".decode('UTF-8') # "✱ %s "
 
 muted_list_filename = nick + '.%s.muted'
 
@@ -195,9 +194,9 @@ def skype_says(chat, msg, edited = False):
     else:
         edit_label = ""
     if msgtype == 'EMOTED':
-        bot.say(usemap[chat], emote_char + " " + get_nick_decorated(senderHandle) + edit_label + " " + raw)
+        bot.say(usemap[chat], emote_format % (get_nick_decorated(senderHandle) + edit_label))
     elif msgtype == 'SAID':
-        bot.say(usemap[chat], name_start + get_nick_decorated(senderHandle) + edit_label + name_end + " " + raw)
+        bot.say(usemap[chat], (name_format % get_nick_decorated(senderHandle)) + raw)
 
 def OnMessageStatus(Message, Status):
     """Skype message object listener"""
@@ -353,7 +352,7 @@ class MirrorBot(SingleServerIRCBot):
             return
         if source in mutedl[target]:
             return
-        msg = name_start + source + name_end + " "
+        msg = name_format % source
         for raw in args:
             msg += decode_irc(raw) + "\n"
         msg = msg.rstrip("\n")
@@ -370,7 +369,7 @@ class MirrorBot(SingleServerIRCBot):
                 return
         if target in usemap and args[0]=='ACTION' and len(args) == 2:
             # An emote/action message has been sent to us
-            msg = emote_char + " " + source + " " + decode_irc(args[1]) + "\n"
+            msg = emote_format % source + decode_irc(args[1]) + "\n"
             print cut_title(usemap[target].FriendlyName), msg
             usemap[target].SendMessage(msg)
 
